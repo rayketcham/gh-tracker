@@ -27,18 +27,23 @@ def _get_gh_token() -> str:
     )
 
 
-def _get_repos() -> list[str]:
+def _get_repos(public_only: bool = False) -> list[str]:
     """Get repos from env var or discover via gh CLI."""
     repos_env = os.environ.get("GH_TRACKER_REPOS")
     if repos_env:
         return [r.strip() for r in repos_env.split(",") if r.strip()]
+
+    jq_filter = '.[] | select(.permissions.push == true'
+    if public_only or os.environ.get("GH_TRACKER_PUBLIC_ONLY", "").lower() in ("1", "true", "yes"):
+        jq_filter += ' and .private == false'
+    jq_filter += ') | .full_name'
 
     try:
         result = subprocess.run(
             [
                 "gh", "api", "user/repos",
                 "--paginate",
-                "--jq", '.[] | select(.permissions.push == true) | .full_name',
+                "--jq", jq_filter,
             ],
             capture_output=True,
             text=True,

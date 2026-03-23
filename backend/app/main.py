@@ -58,6 +58,10 @@ def create_app(db: Database | None = None) -> FastAPI:
             "total_unique_visitors": total_uv,
         }
 
+    @app.get("/api/repos/{owner}/{repo}/visitors")
+    async def get_repo_visitors(owner: str, repo: str) -> list[dict]:
+        return await app.state.db.get_repo_visitors(f"{owner}/{repo}")
+
     @app.get("/api/visitors")
     async def get_visitors(repo: str | None = Query(None)) -> list[dict]:
         return await app.state.db.get_daily_visitors(repo)

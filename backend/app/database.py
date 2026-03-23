@@ -177,6 +177,18 @@ class Database:
         rows = await cursor.fetchall()
         return [dict(row) for row in rows]
 
+    async def get_repo_visitors(self, repo_name: str) -> list[dict]:
+        """Get daily visitor breakdown for a repo. Excludes fully-zero days."""
+        cursor = await self._db.execute(
+            "SELECT date, views, unique_visitors, clones, unique_cloners "
+            "FROM daily_metrics "
+            "WHERE repo_name = ? AND (views > 0 OR unique_visitors > 0) "
+            "ORDER BY date DESC",
+            (repo_name,),
+        )
+        rows = await cursor.fetchall()
+        return [dict(row) for row in rows]
+
     async def get_visitor_summary(self) -> list[dict]:
         """Get aggregate visitor stats per repo, sorted by total unique visitors."""
         cursor = await self._db.execute(

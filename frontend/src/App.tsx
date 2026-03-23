@@ -11,6 +11,7 @@ import TrafficChart from './components/TrafficChart'
 import ReferrersChart from './components/ReferrersChart'
 import PopularPaths from './components/PopularPaths'
 import VisitorsTable from './components/VisitorsTable'
+import VisitorDrilldown from './components/VisitorDrilldown'
 
 interface VisitorSummary {
   repo_name: string
@@ -21,6 +22,7 @@ interface VisitorSummary {
 
 function App() {
   const [selectedRepo, setSelectedRepo] = useState<string>('')
+  const [drilldownRepo, setDrilldownRepo] = useState<string | null>(null)
 
   const { data: repos = [], isLoading: reposLoading } = useQuery({
     queryKey: ['repos'],
@@ -201,11 +203,24 @@ function App() {
           <VisitorsTable
             data={visitorSummary}
             loading={visitorsLoading}
-            selectedRepo={activeRepo}
-            onSelectRepo={(repo) => setSelectedRepo(repo)}
+            selectedRepo={drilldownRepo || activeRepo}
+            onSelectRepo={(repo) => {
+              setSelectedRepo(repo)
+              setDrilldownRepo(drilldownRepo === repo ? null : repo)
+            }}
           />
           <ReferrersChart data={referrers} loading={referrersLoading} />
         </div>
+
+        {/* Row 3b: Visitor Drill-down (shows when a repo is clicked) */}
+        {drilldownRepo && (
+          <div style={{ marginBottom: 24 }}>
+            <VisitorDrilldown
+              repoName={drilldownRepo}
+              onClose={() => setDrilldownRepo(null)}
+            />
+          </div>
+        )}
 
         {/* Row 4: Popular Paths (full width) */}
         <div style={{ marginBottom: 24 }}>
