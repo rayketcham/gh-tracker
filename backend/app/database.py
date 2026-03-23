@@ -153,6 +153,45 @@ class Database:
         rows = await cursor.fetchall()
         return [row[0] for row in rows]
 
+    # --- Visitors ---
+
+    async def get_daily_visitors(
+        self, repo_name: str | None = None
+    ) -> list[dict]:
+        """Get daily visitor data, optionally filtered by repo. Excludes zero-visitor days."""
+        if repo_name:
+            cursor = await self._db.execute(
+                "SELECT repo_name, date, unique_visitors, views "
+                "FROM daily_metrics "
+                "WHERE repo_name = ? AND unique_visitors > 0 "
+                "ORDER BY date DESC",
+                (repo_name,),
+            )
+        else:
+            cursor = await self._db.execute(
+                "SELECT repo_name, date, unique_visitors, views "
+                "FROM daily_metrics "
+                "WHERE unique_visitors > 0 "
+                "ORDER BY date DESC",
+            )
+        rows = await cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    async def get_visitor_summary(self) -> list[dict]:
+        """Get aggregate visitor stats per repo, sorted by total unique visitors."""
+        cursor = await self._db.execute(
+            "SELECT repo_name, "
+            "SUM(unique_visitors) as total_unique_visitors, "
+            "SUM(views) as total_views, "
+            "SUM(CASE WHEN views > 0 THEN 1 ELSE 0 END) as days_with_traffic "
+            "FROM daily_metrics "
+            "GROUP BY repo_name "
+            "HAVING total_unique_visitors > 0 "
+            "ORDER BY total_unique_visitors DESC",
+        )
+        rows = await cursor.fetchall()
+        return [dict(row) for row in rows]
+
     # --- Referrers ---
 
     async def store_referrers(

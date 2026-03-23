@@ -38,4 +38,12 @@ def create_app(db: Database | None = None) -> FastAPI:
     async def get_paths(owner: str, repo: str) -> list[dict]:
         return await app.state.db.get_popular_paths(f"{owner}/{repo}")
 
+    @app.get("/api/visitors")
+    async def get_visitors(repo: str | None = Query(None)) -> list[dict]:
+        return await app.state.db.get_daily_visitors(repo)
+
+    @app.get("/api/visitors/summary")
+    async def get_visitors_summary() -> list[dict]:
+        return await app.state.db.get_visitor_summary()
+
     return app
