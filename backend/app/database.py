@@ -112,6 +112,28 @@ class Database:
                 UNIQUE(repo_name, number)
             );
 
+            CREATE TABLE IF NOT EXISTS repo_metadata (
+                repo_name TEXT PRIMARY KEY,
+                description TEXT DEFAULT '',
+                language TEXT DEFAULT '',
+                topics TEXT DEFAULT '',
+                stars INTEGER DEFAULT 0,
+                forks INTEGER DEFAULT 0,
+                watchers_count INTEGER DEFAULT 0,
+                open_issues_count INTEGER DEFAULT 0,
+                size_kb INTEGER DEFAULT 0,
+                license TEXT DEFAULT '',
+                created_at TEXT DEFAULT '',
+                updated_at TEXT DEFAULT '',
+                pushed_at TEXT DEFAULT '',
+                default_branch TEXT DEFAULT 'main',
+                homepage TEXT DEFAULT '',
+                total_commits INTEGER DEFAULT 0,
+                releases_count INTEGER DEFAULT 0,
+                languages_json TEXT DEFAULT '{}',
+                collected_at TEXT DEFAULT ''
+            );
+
             CREATE INDEX IF NOT EXISTS idx_daily_repo_date ON daily_metrics(repo_name, date);
             CREATE INDEX IF NOT EXISTS idx_issues_repo ON issues(repo_name);
             CREATE INDEX IF NOT EXISTS idx_referrers_repo ON referrers(repo_name, date);
@@ -120,6 +142,7 @@ class Database:
             CREATE INDEX IF NOT EXISTS idx_watchers_repo ON watchers(repo_name);
             CREATE INDEX IF NOT EXISTS idx_forkers_repo ON forkers(repo_name);
             CREATE INDEX IF NOT EXISTS idx_contributors_repo ON contributors(repo_name);
+            CREATE INDEX IF NOT EXISTS idx_metadata_repo ON repo_metadata(repo_name);
         """)
 
     async def list_tables(self) -> list[str]:
@@ -491,3 +514,54 @@ class Database:
                 "open_prs": 0, "closed_prs": 0, "total": 0,
             }
         return dict(row)
+
+    # --- Repo metadata ---
+
+    async def upsert_repo_metadata(self, repo_name: str, **kwargs) -> None:
+        """Upsert repo metadata. Accepts any column as a keyword argument."""
+        # Always stamp collected_at
+        kwargs.setdefault("collected_at", datetime.now(UTC).isoformat())
+
+        # Allowed columns
+        allowed = {
+            "description", "language", "topics", "stars", "forks",
+            "watchers_count", "open_issues_count", "size_kb", "license",
+            "created_at", "updated_at", "pushed_at", "default_branch",
+            "homepage", "total_commits", "releases_count", "languages_json",
+            "collected_at",
+        }
+        fields = {k: v for k, v in kwargs.items() if k in allowed}
+        fields["repo_name"] = repo_name
+
+        columns = ", ".join(fields.keys())
+        placeholders = ", ".join("?" for _ in fields)
+        values = list(fields.values())
+
+        await self._db.execute(
+            f"INSERT OR REPLACE INTO repo_metadata ({columns}) VALUES ({placeholders})",
+            values,
+        )
+        await self._db.commit()
+
+    async def get_repo_metadata(self, repo_name: str) -> dict | None:
+        """Get metadata for a repo."""
+        cursor = await self._db.execute(
+            "SELECT * FROM repo_metadata WHERE repo_name = ?",
+            (repo_name,),
+        )
+        row = await cursor.fetchone()
+        return dict(row) if row else None
+
+    async def get_all_repo_metadata(self) -> list[dict]:
+        """Get metadata for all repos, sorted by stars desc then views."""
+        cursor = await self._db.execute(
+            "SELECT m.*, COALESCE(v.total_views, 0) AS total_views "
+            "FROM repo_metadata m "
+            "LEFT JOIN ("
+            "  SELECT repo_name, SUM(views) AS total_views "
+            "  FROM daily_metrics GROUP BY repo_name"
+            ") v ON m.repo_name = v.repo_name "
+            "ORDER BY m.stars DESC, total_views DESC"
+        )
+        rows = await cursor.fetchall()
+        return [dict(row) for row in rows]

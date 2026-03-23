@@ -106,6 +106,40 @@ def create_app(db: Database | None = None) -> FastAPI:
             "top_contributors": contribs[:10],
         }
 
+    # --- Metadata endpoints ---
+
+    @app.get("/api/repos/{owner}/{repo}/metadata")
+    async def get_metadata(owner: str, repo: str) -> dict:
+        repo_name = f"{owner}/{repo}"
+        meta = await app.state.db.get_repo_metadata(repo_name)
+        if meta is None:
+            return {
+                "repo_name": repo_name,
+                "description": "",
+                "language": "",
+                "topics": "",
+                "stars": 0,
+                "forks": 0,
+                "watchers_count": 0,
+                "open_issues_count": 0,
+                "size_kb": 0,
+                "license": "",
+                "created_at": "",
+                "updated_at": "",
+                "pushed_at": "",
+                "default_branch": "main",
+                "homepage": "",
+                "total_commits": 0,
+                "releases_count": 0,
+                "languages_json": "{}",
+                "collected_at": "",
+            }
+        return meta
+
+    @app.get("/api/metadata")
+    async def get_all_metadata() -> list[dict]:
+        return await app.state.db.get_all_repo_metadata()
+
     # --- Issues endpoints ---
 
     @app.get("/api/repos/{owner}/{repo}/issues/summary")

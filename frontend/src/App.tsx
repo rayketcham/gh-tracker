@@ -14,6 +14,7 @@ import VisitorsTable from './components/VisitorsTable'
 import VisitorDrilldown from './components/VisitorDrilldown'
 import PeoplePanel from './components/PeoplePanel'
 import IssuesPanel from './components/IssuesPanel'
+import RepoHeader from './components/RepoHeader'
 
 interface VisitorSummary {
   repo_name: string
@@ -217,6 +218,9 @@ function App() {
         {/* Row 3b: Drill-down — visitor breakdown + people panel */}
         {drilldownRepo && (
           <>
+            {/* Drill-down row 0: Repo metadata header */}
+            <RepoHeader repoName={drilldownRepo} />
+
             {/* Drill-down row 1: Visitors + People */}
             <div style={{
               display: 'grid',

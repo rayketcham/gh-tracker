@@ -357,11 +357,41 @@ class TestMultiRepoCollection:
                     json=[],
                     headers={"X-RateLimit-Remaining": "4982"},
                 )
+            # Metadata endpoints (4: repo info, commits, releases, languages)
+            httpx_mock.add_response(
+                url=f"https://api.github.com/repos/owner/{repo}",
+                json={
+                    "description": "Test", "language": "Python",
+                    "stargazers_count": 5, "forks_count": 1,
+                    "subscribers_count": 2, "open_issues_count": 0,
+                    "size": 100, "license": None, "topics": [],
+                    "created_at": "2023-01-01T00:00:00Z",
+                    "updated_at": "2026-01-01T00:00:00Z",
+                    "pushed_at": "2026-01-01T00:00:00Z",
+                    "default_branch": "main", "homepage": "",
+                },
+                headers={"X-RateLimit-Remaining": "4981"},
+            )
+            httpx_mock.add_response(
+                url=f"https://api.github.com/repos/owner/{repo}/commits?per_page=1",
+                json=[{}],
+                headers={"X-RateLimit-Remaining": "4980"},
+            )
+            httpx_mock.add_response(
+                url=f"https://api.github.com/repos/owner/{repo}/releases?per_page=1",
+                json=[],
+                headers={"X-RateLimit-Remaining": "4979"},
+            )
+            httpx_mock.add_response(
+                url=f"https://api.github.com/repos/owner/{repo}/languages",
+                json={"Python": 1000},
+                headers={"X-RateLimit-Remaining": "4978"},
+            )
 
         await collector.collect_all()
 
-        # 4 traffic + 4 people + 2 issues = 10 per repo x 2 repos = 20
-        assert len(httpx_mock.get_requests()) == 20
+        # 4 traffic + 4 people + 2 issues + 4 metadata = 14 per repo x 2 repos = 28
+        assert len(httpx_mock.get_requests()) == 28
 
 
 # --- Database schema tests ---

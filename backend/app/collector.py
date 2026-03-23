@@ -223,6 +223,93 @@ class GitHubCollector:
                     repo, username, commits=total, additions=adds, deletions=dels
                 )
 
+    async def collect_metadata(self, repo: str) -> None:
+        """Collect rich metadata for a repository."""
+        # --- Core repo info ---
+        response = await self._request(f"{GITHUB_API}/repos/{repo}")
+        if response is None:
+            return
+
+        data = response.json()
+        license_info = data.get("license") or {}
+        license_id = license_info.get("spdx_id", "") or ""
+
+        topics_raw = data.get("topics") or []
+        topics = ",".join(topics_raw)
+
+        metadata: dict = {
+            "description": data.get("description") or "",
+            "language": data.get("language") or "",
+            "stars": data.get("stargazers_count", 0),
+            "forks": data.get("forks_count", 0),
+            "watchers_count": data.get("subscribers_count", 0),
+            "open_issues_count": data.get("open_issues_count", 0),
+            "size_kb": data.get("size", 0),
+            "license": license_id,
+            "topics": topics,
+            "created_at": data.get("created_at", ""),
+            "updated_at": data.get("updated_at", ""),
+            "pushed_at": data.get("pushed_at", ""),
+            "default_branch": data.get("default_branch", "main"),
+            "homepage": data.get("homepage") or "",
+        }
+
+        # --- Total commits via Link header trick ---
+        try:
+            commit_resp = await self._request(
+                f"{GITHUB_API}/repos/{repo}/commits?per_page=1"
+            )
+            if commit_resp is not None:
+                link_header = commit_resp.headers.get("Link", "")
+                total_commits = 0
+                # Link: <...?page=N>; rel="last"
+                for part in link_header.split(","):
+                    part = part.strip()
+                    if 'rel="last"' in part:
+                        # Extract page number from URL
+                        url_part = part.split(";")[0].strip().strip("<>")
+                        for param in url_part.split("&"):
+                            if param.startswith("page="):
+                                total_commits = int(param.split("=", 1)[1])
+                                break
+                        break
+                metadata["total_commits"] = total_commits
+        except Exception:
+            logger.warning("Could not get commit count for %s", repo)
+
+        # --- Releases count ---
+        try:
+            releases_resp = await self._request(
+                f"{GITHUB_API}/repos/{repo}/releases?per_page=1"
+            )
+            if releases_resp is not None:
+                link_header = releases_resp.headers.get("Link", "")
+                releases_count = len(releases_resp.json())
+                for part in link_header.split(","):
+                    part = part.strip()
+                    if 'rel="last"' in part:
+                        url_part = part.split(";")[0].strip().strip("<>")
+                        for param in url_part.split("&"):
+                            if param.startswith("page="):
+                                releases_count = int(param.split("=", 1)[1])
+                                break
+                        break
+                metadata["releases_count"] = releases_count
+        except Exception:
+            logger.warning("Could not get releases count for %s", repo)
+
+        # --- Language breakdown ---
+        try:
+            lang_resp = await self._request(
+                f"{GITHUB_API}/repos/{repo}/languages"
+            )
+            if lang_resp is not None:
+                metadata["languages_json"] = json.dumps(lang_resp.json())
+        except Exception:
+            logger.warning("Could not get languages for %s", repo)
+
+        await self.db.upsert_repo_metadata(repo, **metadata)
+
     async def collect_issues(self, repo: str) -> None:
         """Collect open and recently closed issues and PRs."""
         for state in ("open", "closed"):
@@ -262,6 +349,7 @@ class GitHubCollector:
                     self.collect_forkers,
                     self.collect_contributors,
                     self.collect_issues,
+                    self.collect_metadata,
                 ):
                     try:
                         await people_fn(repo)
