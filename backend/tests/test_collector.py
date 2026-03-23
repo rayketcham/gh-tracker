@@ -350,11 +350,18 @@ class TestMultiRepoCollection:
                 json=[],
                 headers={"X-RateLimit-Remaining": "4983"},
             )
+            # Issues endpoints (2: open + closed)
+            for state in ("open", "closed"):
+                httpx_mock.add_response(
+                    url=f"https://api.github.com/repos/owner/{repo}/issues?state={state}&per_page=30&sort=updated",
+                    json=[],
+                    headers={"X-RateLimit-Remaining": "4982"},
+                )
 
         await collector.collect_all()
 
-        # 8 endpoints per repo x 2 repos = 16
-        assert len(httpx_mock.get_requests()) == 16
+        # 4 traffic + 4 people + 2 issues = 10 per repo x 2 repos = 20
+        assert len(httpx_mock.get_requests()) == 20
 
 
 # --- Database schema tests ---

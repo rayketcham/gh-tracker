@@ -99,7 +99,21 @@ class Database:
                 UNIQUE(repo_name, username)
             );
 
+            CREATE TABLE IF NOT EXISTS issues (
+                repo_name TEXT NOT NULL,
+                number INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                state TEXT NOT NULL,
+                author TEXT DEFAULT '',
+                labels TEXT DEFAULT '',
+                created_at TEXT NOT NULL,
+                closed_at TEXT,
+                is_pr INTEGER DEFAULT 0,
+                UNIQUE(repo_name, number)
+            );
+
             CREATE INDEX IF NOT EXISTS idx_daily_repo_date ON daily_metrics(repo_name, date);
+            CREATE INDEX IF NOT EXISTS idx_issues_repo ON issues(repo_name);
             CREATE INDEX IF NOT EXISTS idx_referrers_repo ON referrers(repo_name, date);
             CREATE INDEX IF NOT EXISTS idx_paths_repo ON popular_paths(repo_name, date);
             CREATE INDEX IF NOT EXISTS idx_stargazers_repo ON stargazers(repo_name);
@@ -420,3 +434,60 @@ class Database:
             (repo_name,),
         )
         return [dict(row) for row in await cursor.fetchall()]
+
+    # --- Issues ---
+
+    async def upsert_issue(
+        self, repo_name: str, number: int, title: str, state: str,
+        author: str, labels: str, created_at: str,
+        closed_at: str | None, is_pr: bool = False,
+    ) -> None:
+        await self._db.execute(
+            "INSERT OR REPLACE INTO issues "
+            "(repo_name, number, title, state, author, labels, "
+            "created_at, closed_at, is_pr) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (repo_name, number, title, state, author, labels,
+             created_at, closed_at, 1 if is_pr else 0),
+        )
+        await self._db.commit()
+
+    async def get_issues(
+        self, repo_name: str,
+        state: str | None = None,
+        is_pr: bool | None = None,
+    ) -> list[dict]:
+        sql = "SELECT * FROM issues WHERE repo_name = ?"
+        params: list = [repo_name]
+        if state:
+            sql += " AND state = ?"
+            params.append(state)
+        if is_pr is not None:
+            sql += " AND is_pr = ?"
+            params.append(1 if is_pr else 0)
+        sql += " ORDER BY created_at DESC"
+        cursor = await self._db.execute(sql, params)
+        return [dict(row) for row in await cursor.fetchall()]
+
+    async def get_issue_summary(self, repo_name: str) -> dict:
+        cursor = await self._db.execute(
+            "SELECT "
+            "SUM(CASE WHEN state='open' AND is_pr=0 THEN 1 ELSE 0 END) "
+            "  as open_issues, "
+            "SUM(CASE WHEN state='closed' AND is_pr=0 THEN 1 ELSE 0 END) "
+            "  as closed_issues, "
+            "SUM(CASE WHEN state='open' AND is_pr=1 THEN 1 ELSE 0 END) "
+            "  as open_prs, "
+            "SUM(CASE WHEN state='closed' AND is_pr=1 THEN 1 ELSE 0 END) "
+            "  as closed_prs, "
+            "COUNT(*) as total "
+            "FROM issues WHERE repo_name = ?",
+            (repo_name,),
+        )
+        row = await cursor.fetchone()
+        if row is None or row["total"] == 0:
+            return {
+                "open_issues": 0, "closed_issues": 0,
+                "open_prs": 0, "closed_prs": 0, "total": 0,
+            }
+        return dict(row)

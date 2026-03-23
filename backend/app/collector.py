@@ -223,6 +223,31 @@ class GitHubCollector:
                     repo, username, commits=total, additions=adds, deletions=dels
                 )
 
+    async def collect_issues(self, repo: str) -> None:
+        """Collect open and recently closed issues and PRs."""
+        for state in ("open", "closed"):
+            url = f"{GITHUB_API}/repos/{repo}/issues?state={state}&per_page=30&sort=updated"
+            response = await self._request(url)
+            if response is None:
+                continue
+            for item in response.json():
+                is_pr = "pull_request" in item
+                user = item.get("user", {})
+                label_names = ",".join(
+                    lb.get("name", "") for lb in item.get("labels", [])
+                )
+                await self.db.upsert_issue(
+                    repo,
+                    item["number"],
+                    item.get("title", ""),
+                    item.get("state", ""),
+                    user.get("login", ""),
+                    label_names,
+                    item.get("created_at", ""),
+                    item.get("closed_at"),
+                    is_pr=is_pr,
+                )
+
     async def collect_all(self) -> None:
         """Collect all data for all configured repositories."""
         for repo in self.repos:
@@ -236,6 +261,7 @@ class GitHubCollector:
                     self.collect_watchers,
                     self.collect_forkers,
                     self.collect_contributors,
+                    self.collect_issues,
                 ):
                     try:
                         await people_fn(repo)

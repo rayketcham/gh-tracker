@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Star, Eye, GitFork, Users, ExternalLink, Code } from 'lucide-react';
 
@@ -60,10 +61,10 @@ function UserLink({ username }: { username: string }) {
 
 function Section({ title, icon, color, count, children }: {
   title: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
   color: string;
   count: number;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <div style={{
@@ -101,7 +102,7 @@ function Section({ title, icon, color, count, children }: {
   );
 }
 
-function PersonRow({ children }: { children: React.ReactNode }) {
+function PersonRow({ children }: { children: ReactNode }) {
   return (
     <div
       style={{

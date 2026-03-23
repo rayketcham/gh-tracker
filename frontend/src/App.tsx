@@ -13,6 +13,7 @@ import PopularPaths from './components/PopularPaths'
 import VisitorsTable from './components/VisitorsTable'
 import VisitorDrilldown from './components/VisitorDrilldown'
 import PeoplePanel from './components/PeoplePanel'
+import IssuesPanel from './components/IssuesPanel'
 
 interface VisitorSummary {
   repo_name: string
@@ -215,18 +216,25 @@ function App() {
 
         {/* Row 3b: Drill-down — visitor breakdown + people panel */}
         {drilldownRepo && (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 16,
-            marginBottom: 24,
-          }}>
-            <VisitorDrilldown
-              repoName={drilldownRepo}
-              onClose={() => setDrilldownRepo(null)}
-            />
-            <PeoplePanel repoName={drilldownRepo} />
-          </div>
+          <>
+            {/* Drill-down row 1: Visitors + People */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 16,
+              marginBottom: 16,
+            }}>
+              <VisitorDrilldown
+                repoName={drilldownRepo}
+                onClose={() => setDrilldownRepo(null)}
+              />
+              <PeoplePanel repoName={drilldownRepo} />
+            </div>
+            {/* Drill-down row 2: Issues (full width) */}
+            <div style={{ marginBottom: 24 }}>
+              <IssuesPanel repoName={drilldownRepo} />
+            </div>
+          </>
         )}
 
         {/* Row 4: Popular Paths (full width) */}

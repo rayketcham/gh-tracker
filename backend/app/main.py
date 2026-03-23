@@ -106,4 +106,18 @@ def create_app(db: Database | None = None) -> FastAPI:
             "top_contributors": contribs[:10],
         }
 
+    # --- Issues endpoints ---
+
+    @app.get("/api/repos/{owner}/{repo}/issues/summary")
+    async def get_issues_summary(owner: str, repo: str) -> dict:
+        return await app.state.db.get_issue_summary(f"{owner}/{repo}")
+
+    @app.get("/api/repos/{owner}/{repo}/issues")
+    async def get_issues(
+        owner: str, repo: str, state: str | None = Query(None)
+    ) -> list[dict]:
+        return await app.state.db.get_issues(
+            f"{owner}/{repo}", state=state
+        )
+
     return app
