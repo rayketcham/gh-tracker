@@ -12,6 +12,7 @@ import ReferrersChart from './components/ReferrersChart'
 import PopularPaths from './components/PopularPaths'
 import VisitorsTable from './components/VisitorsTable'
 import VisitorDrilldown from './components/VisitorDrilldown'
+import PeoplePanel from './components/PeoplePanel'
 
 interface VisitorSummary {
   repo_name: string
@@ -212,13 +213,19 @@ function App() {
           <ReferrersChart data={referrers} loading={referrersLoading} />
         </div>
 
-        {/* Row 3b: Visitor Drill-down (shows when a repo is clicked) */}
+        {/* Row 3b: Drill-down — visitor breakdown + people panel */}
         {drilldownRepo && (
-          <div style={{ marginBottom: 24 }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 16,
+            marginBottom: 24,
+          }}>
             <VisitorDrilldown
               repoName={drilldownRepo}
               onClose={() => setDrilldownRepo(null)}
             />
+            <PeoplePanel repoName={drilldownRepo} />
           </div>
         )}
 

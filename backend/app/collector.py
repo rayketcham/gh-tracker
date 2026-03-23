@@ -157,14 +157,90 @@ class GitHubCollector:
         today = datetime.now(UTC).strftime("%Y-%m-%d")
         await self.db.store_paths(repo, today, data)
 
+    async def collect_stargazers(self, repo: str) -> None:
+        """Collect stargazers with timestamps."""
+        url = f"{GITHUB_API}/repos/{repo}/stargazers"
+        self._check_rate_limit()
+        client = await self._get_client()
+        # Need star+json accept header for timestamps
+        response = await client.get(
+            url,
+            headers={"Accept": "application/vnd.github.star+json"},
+        )
+        self._update_rate_limit(response)
+        response.raise_for_status()
+
+        for star in response.json():
+            user = star.get("user", {})
+            username = user.get("login", "")
+            starred_at = star.get("starred_at", "")
+            if username:
+                await self.db.upsert_stargazer(repo, username, starred_at)
+
+    async def collect_watchers(self, repo: str) -> None:
+        """Collect watchers (subscribers)."""
+        url = f"{GITHUB_API}/repos/{repo}/subscribers"
+        response = await self._request(url)
+        if response is None:
+            return
+        for user in response.json():
+            username = user.get("login", "")
+            if username:
+                await self.db.upsert_watcher(repo, username)
+
+    async def collect_forkers(self, repo: str) -> None:
+        """Collect forks with owner info."""
+        url = f"{GITHUB_API}/repos/{repo}/forks?sort=newest"
+        response = await self._request(url)
+        if response is None:
+            return
+        for fork in response.json():
+            owner = fork.get("owner", {})
+            username = owner.get("login", "")
+            fork_name = fork.get("full_name", "")
+            forked_at = fork.get("created_at", "")
+            if username:
+                await self.db.upsert_forker(repo, username, fork_name, forked_at)
+
+    async def collect_contributors(self, repo: str) -> None:
+        """Collect contributors with commit stats."""
+        url = f"{GITHUB_API}/repos/{repo}/stats/contributors"
+        response = await self._request(url)
+        if response is None:
+            return
+        data = response.json()
+        if not isinstance(data, list):
+            return
+        for entry in data:
+            author = entry.get("author", {})
+            username = author.get("login", "")
+            total = entry.get("total", 0)
+            weeks = entry.get("weeks", [])
+            adds = sum(w.get("a", 0) for w in weeks)
+            dels = sum(w.get("d", 0) for w in weeks)
+            if username:
+                await self.db.upsert_contributor(
+                    repo, username, commits=total, additions=adds, deletions=dels
+                )
+
     async def collect_all(self) -> None:
-        """Collect all traffic data for all configured repositories."""
+        """Collect all data for all configured repositories."""
         for repo in self.repos:
             try:
                 await self.collect_views(repo)
                 await self.collect_clones(repo)
                 await self.collect_referrers(repo)
                 await self.collect_paths(repo)
+                for people_fn in (
+                    self.collect_stargazers,
+                    self.collect_watchers,
+                    self.collect_forkers,
+                    self.collect_contributors,
+                ):
+                    try:
+                        await people_fn(repo)
+                    except Exception:
+                        logger.warning("Failed %s for %s", people_fn.__name__, repo)
             except RateLimitError:
                 logger.warning("Rate limit reached, stopping collection")
                 break

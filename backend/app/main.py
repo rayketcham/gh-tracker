@@ -70,4 +70,40 @@ def create_app(db: Database | None = None) -> FastAPI:
     async def get_visitors_summary() -> list[dict]:
         return await app.state.db.get_visitor_summary()
 
+    # --- People endpoints ---
+
+    @app.get("/api/repos/{owner}/{repo}/stargazers")
+    async def get_stargazers(owner: str, repo: str) -> list[dict]:
+        return await app.state.db.get_stargazers(f"{owner}/{repo}")
+
+    @app.get("/api/repos/{owner}/{repo}/watchers")
+    async def get_watchers(owner: str, repo: str) -> list[dict]:
+        return await app.state.db.get_watchers(f"{owner}/{repo}")
+
+    @app.get("/api/repos/{owner}/{repo}/forkers")
+    async def get_forkers(owner: str, repo: str) -> list[dict]:
+        return await app.state.db.get_forkers(f"{owner}/{repo}")
+
+    @app.get("/api/repos/{owner}/{repo}/contributors")
+    async def get_contributors(owner: str, repo: str) -> list[dict]:
+        return await app.state.db.get_contributors(f"{owner}/{repo}")
+
+    @app.get("/api/repos/{owner}/{repo}/people")
+    async def get_people_summary(owner: str, repo: str) -> dict:
+        repo_name = f"{owner}/{repo}"
+        stars = await app.state.db.get_stargazers(repo_name)
+        watchers = await app.state.db.get_watchers(repo_name)
+        forkers = await app.state.db.get_forkers(repo_name)
+        contribs = await app.state.db.get_contributors(repo_name)
+        return {
+            "repo_name": repo_name,
+            "stargazers_count": len(stars),
+            "watchers_count": len(watchers),
+            "forkers_count": len(forkers),
+            "contributors_count": len(contribs),
+            "recent_stargazers": stars[:10],
+            "recent_forkers": forkers[:10],
+            "top_contributors": contribs[:10],
+        }
+
     return app

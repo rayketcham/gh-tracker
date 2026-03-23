@@ -308,6 +308,7 @@ class TestMultiRepoCollection:
         )
 
         for repo in ["repo1", "repo2"]:
+            # Traffic endpoints (4)
             httpx_mock.add_response(
                 url=f"https://api.github.com/repos/owner/{repo}/traffic/views?per=day",
                 json={"count": 10, "uniques": 5, "views": []},
@@ -328,11 +329,32 @@ class TestMultiRepoCollection:
                 json=[],
                 headers={"X-RateLimit-Remaining": "4987"},
             )
+            # People endpoints (4)
+            httpx_mock.add_response(
+                url=f"https://api.github.com/repos/owner/{repo}/stargazers",
+                json=[],
+                headers={"X-RateLimit-Remaining": "4986"},
+            )
+            httpx_mock.add_response(
+                url=f"https://api.github.com/repos/owner/{repo}/subscribers",
+                json=[],
+                headers={"X-RateLimit-Remaining": "4985"},
+            )
+            httpx_mock.add_response(
+                url=f"https://api.github.com/repos/owner/{repo}/forks?sort=newest",
+                json=[],
+                headers={"X-RateLimit-Remaining": "4984"},
+            )
+            httpx_mock.add_response(
+                url=f"https://api.github.com/repos/owner/{repo}/stats/contributors",
+                json=[],
+                headers={"X-RateLimit-Remaining": "4983"},
+            )
 
         await collector.collect_all()
 
-        # Should have made requests for both repos (4 endpoints each)
-        assert len(httpx_mock.get_requests()) == 8
+        # 8 endpoints per repo x 2 repos = 16
+        assert len(httpx_mock.get_requests()) == 16
 
 
 # --- Database schema tests ---

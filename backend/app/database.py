@@ -69,9 +69,43 @@ class Database:
                 collected_at TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS stargazers (
+                repo_name TEXT NOT NULL,
+                username TEXT NOT NULL,
+                starred_at TEXT,
+                UNIQUE(repo_name, username)
+            );
+
+            CREATE TABLE IF NOT EXISTS watchers (
+                repo_name TEXT NOT NULL,
+                username TEXT NOT NULL,
+                UNIQUE(repo_name, username)
+            );
+
+            CREATE TABLE IF NOT EXISTS forkers (
+                repo_name TEXT NOT NULL,
+                username TEXT NOT NULL,
+                fork_repo TEXT NOT NULL,
+                forked_at TEXT,
+                UNIQUE(repo_name, username)
+            );
+
+            CREATE TABLE IF NOT EXISTS contributors (
+                repo_name TEXT NOT NULL,
+                username TEXT NOT NULL,
+                commits INTEGER DEFAULT 0,
+                additions INTEGER DEFAULT 0,
+                deletions INTEGER DEFAULT 0,
+                UNIQUE(repo_name, username)
+            );
+
             CREATE INDEX IF NOT EXISTS idx_daily_repo_date ON daily_metrics(repo_name, date);
             CREATE INDEX IF NOT EXISTS idx_referrers_repo ON referrers(repo_name, date);
             CREATE INDEX IF NOT EXISTS idx_paths_repo ON popular_paths(repo_name, date);
+            CREATE INDEX IF NOT EXISTS idx_stargazers_repo ON stargazers(repo_name);
+            CREATE INDEX IF NOT EXISTS idx_watchers_repo ON watchers(repo_name);
+            CREATE INDEX IF NOT EXISTS idx_forkers_repo ON forkers(repo_name);
+            CREATE INDEX IF NOT EXISTS idx_contributors_repo ON contributors(repo_name);
         """)
 
     async def list_tables(self) -> list[str]:
@@ -307,3 +341,82 @@ class Database:
         )
         rows = await cursor.fetchall()
         return [dict(row) for row in rows]
+
+    # --- People: Stargazers ---
+
+    async def upsert_stargazer(
+        self, repo_name: str, username: str, starred_at: str
+    ) -> None:
+        await self._db.execute(
+            "INSERT OR REPLACE INTO stargazers (repo_name, username, starred_at) "
+            "VALUES (?, ?, ?)",
+            (repo_name, username, starred_at),
+        )
+        await self._db.commit()
+
+    async def get_stargazers(self, repo_name: str) -> list[dict]:
+        cursor = await self._db.execute(
+            "SELECT username, starred_at FROM stargazers "
+            "WHERE repo_name = ? ORDER BY starred_at DESC",
+            (repo_name,),
+        )
+        return [dict(row) for row in await cursor.fetchall()]
+
+    # --- People: Watchers ---
+
+    async def upsert_watcher(self, repo_name: str, username: str) -> None:
+        await self._db.execute(
+            "INSERT OR IGNORE INTO watchers (repo_name, username) VALUES (?, ?)",
+            (repo_name, username),
+        )
+        await self._db.commit()
+
+    async def get_watchers(self, repo_name: str) -> list[dict]:
+        cursor = await self._db.execute(
+            "SELECT username FROM watchers "
+            "WHERE repo_name = ? ORDER BY username",
+            (repo_name,),
+        )
+        return [dict(row) for row in await cursor.fetchall()]
+
+    # --- People: Forkers ---
+
+    async def upsert_forker(
+        self, repo_name: str, username: str, fork_repo: str, forked_at: str
+    ) -> None:
+        await self._db.execute(
+            "INSERT OR REPLACE INTO forkers "
+            "(repo_name, username, fork_repo, forked_at) VALUES (?, ?, ?, ?)",
+            (repo_name, username, fork_repo, forked_at),
+        )
+        await self._db.commit()
+
+    async def get_forkers(self, repo_name: str) -> list[dict]:
+        cursor = await self._db.execute(
+            "SELECT username, fork_repo, forked_at FROM forkers "
+            "WHERE repo_name = ? ORDER BY forked_at DESC",
+            (repo_name,),
+        )
+        return [dict(row) for row in await cursor.fetchall()]
+
+    # --- People: Contributors ---
+
+    async def upsert_contributor(
+        self, repo_name: str, username: str,
+        commits: int = 0, additions: int = 0, deletions: int = 0,
+    ) -> None:
+        await self._db.execute(
+            "INSERT OR REPLACE INTO contributors "
+            "(repo_name, username, commits, additions, deletions) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (repo_name, username, commits, additions, deletions),
+        )
+        await self._db.commit()
+
+    async def get_contributors(self, repo_name: str) -> list[dict]:
+        cursor = await self._db.execute(
+            "SELECT username, commits, additions, deletions FROM contributors "
+            "WHERE repo_name = ? ORDER BY commits DESC",
+            (repo_name,),
+        )
+        return [dict(row) for row in await cursor.fetchall()]
