@@ -3,8 +3,8 @@
 import asyncio
 import logging
 
-from app.config import CollectorConfig
 from app.collector import GitHubCollector
+from app.config import CollectorConfig
 from app.database import Database
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")

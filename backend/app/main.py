@@ -502,7 +502,9 @@ def create_app(db: Database | None = None) -> FastAPI:
                     json=payload, headers=headers, timeout=15,
                 )
                 if resp.status_code >= 400:
-                    raise HTTPException(status_code=502, detail=f"GitHub API error: {resp.status_code}")
+                    raise HTTPException(
+                        status_code=502, detail=f"GitHub API error: {resp.status_code}"
+                    )
 
             if topics is not None:
                 resp = await http.put(
@@ -510,7 +512,9 @@ def create_app(db: Database | None = None) -> FastAPI:
                     json={"names": topics}, headers=headers, timeout=15,
                 )
                 if resp.status_code >= 400:
-                    raise HTTPException(status_code=502, detail=f"GitHub API error: {resp.status_code}")
+                    raise HTTPException(
+                        status_code=502, detail=f"GitHub API error: {resp.status_code}"
+                    )
 
         return {"status": "updated", "repo": f"{owner}/{repo}"}
 

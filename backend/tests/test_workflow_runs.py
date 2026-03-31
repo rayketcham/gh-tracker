@@ -7,6 +7,7 @@ Specs: Issue #29
 """
 import pytest
 from httpx import ASGITransport, AsyncClient
+
 from app.database import Database
 from app.main import create_app
 

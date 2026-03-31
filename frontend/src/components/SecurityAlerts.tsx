@@ -1,12 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { ShieldAlert, AlertTriangle, Info } from 'lucide-react'
+import { ShieldAlert, AlertTriangle } from 'lucide-react'
 
 interface Alert {
   id: number; repo_name: string; alert_type: string; severity: string
   state: string; package_name: string; description: string; url: string; created_at: string
 }
 
-interface Summary { repo_name: string; critical: number; high: number; medium: number; low: number; total: number }
 
 const sevColor: Record<string, string> = {
   critical: '#dc2626', high: '#ef4444', medium: '#eab308', low: '#6b7280',
