@@ -2,7 +2,8 @@
 
 Specs covered:
 1. run.py reads GH_TRACKER_PORT env var to determine listen port
-2. Default port is 8001 (avoids conflict with other services on 8000)
+2. Default port is 50047 (picked from the 50000+ range to avoid
+   collisions with common dev servers on 3000/5000/5173/8000/8080)
 3. Vite proxy targets the correct backend port
 """
 
@@ -12,14 +13,14 @@ import pytest
 
 
 class TestPortConfiguration:
-    """Verify the backend server port is configurable and defaults to 8001."""
+    """Verify the backend server port is configurable and defaults to 50047."""
 
-    def test_default_port_is_8001(self, monkeypatch):
-        """Default port should be 8001 to avoid conflicts with other services."""
+    def test_default_port_is_50047(self, monkeypatch):
+        """Default port should be 50047 to avoid conflicts with common dev servers."""
         monkeypatch.delenv("GH_TRACKER_PORT", raising=False)
         import app.server_config
         importlib.reload(app.server_config)
-        assert app.server_config.get_server_port() == 8001
+        assert app.server_config.get_server_port() == 50047
 
     def test_port_from_env_var(self, monkeypatch):
         """GH_TRACKER_PORT env var should override the default."""

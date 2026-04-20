@@ -102,14 +102,19 @@ pip install -e ".[dev]"
 # Collect data (uses `gh auth token` automatically)
 GH_TRACKER_PUBLIC_ONLY=true python collect_live.py
 
-# Start API server
-python run.py  # → http://localhost:8000
+# Start API server (defaults to port 50047 — override with GH_TRACKER_PORT)
+python run.py                            # → http://localhost:50047
+# GH_TRACKER_PORT=51234 python run.py    # pick your own port
 
 # Frontend (separate terminal)
 cd frontend
 npm install
 npm run dev   # → http://localhost:5173
 ```
+
+> **Port choice.** The API defaults to **50047** — picked from the ephemeral/50000+ range
+> so it won't collide with the usual suspects (8000/8080 dev servers, 3000 Node, 5000 Flask,
+> 5173 Vite, etc.). Change it any time with `GH_TRACKER_PORT`.
 
 ## Configuration
 
@@ -119,6 +124,7 @@ npm run dev   # → http://localhost:5173
 | `GH_TRACKER_REPOS` | auto-discover | Comma-separated `owner/repo` list |
 | `GH_TRACKER_PUBLIC_ONLY` | `false` | Only track public repos |
 | `GH_TRACKER_DB` | `data/metrics.db` | SQLite database path |
+| `GH_TRACKER_PORT` | `50047` | API server port (any valid TCP port) |
 
 ## Automated Collection
 
@@ -128,6 +134,15 @@ sudo cp backend/gh-tracker-collect.service /etc/systemd/system/
 sudo cp backend/gh-tracker-collect.timer /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now gh-tracker-collect.timer
+```
+
+To also run the API as a service (overriding the default port if you like):
+
+```bash
+sudo cp backend/gh-tracker-api.service /etc/systemd/system/
+# Edit the unit's Environment=GH_TRACKER_PORT=... line if you want a different port
+sudo systemctl daemon-reload
+sudo systemctl enable --now gh-tracker-api.service
 ```
 
 ## API Endpoints
@@ -184,13 +199,14 @@ cd frontend && npm run lint
 ```
 backend/
   app/
-    collector.py    # GitHub API data collection (REST + GraphQL)
-    config.py       # Token/repo discovery via gh CLI
-    database.py     # SQLite with 15 tables, async via aiosqlite
-    main.py         # FastAPI with 23 endpoints
-  tests/            # 146 unit tests (pytest + pytest-httpx)
-  collect_live.py   # CLI entry point for data collection
-  run.py            # API server entry point
+    collector.py       # GitHub API data collection (REST + GraphQL)
+    config.py          # Token/repo discovery via gh CLI
+    database.py        # SQLite with 15 tables, async via aiosqlite
+    main.py            # FastAPI with 23 endpoints
+    server_config.py   # Port resolution (GH_TRACKER_PORT, default 50047)
+  tests/               # 146 unit tests (pytest + pytest-httpx)
+  collect_live.py      # CLI entry point for data collection
+  run.py               # API server entry point
 
 frontend/
   src/
