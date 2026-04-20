@@ -6,14 +6,16 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Tests](https://img.shields.io/badge/tests-146%20passing-brightgreen)
-![Endpoints](https://img.shields.io/badge/API%20endpoints-23-blue)
+![Tests](https://img.shields.io/badge/tests-252%20passing-brightgreen)
+![Endpoints](https://img.shields.io/badge/API%20endpoints-46-blue)
 
 # gh-tracker
 
 <!-- runners-demo-hero -->
 <p align="center">
-  <img src="docs/runners-demo.gif" alt="gh-tracker dashboard tour: traffic, referrers, and self-hosted runners live view" width="900">
+  <video src="docs/runners-demo.mp4" poster="docs/runners-demo.png" controls muted width="900">
+    <a href="docs/runners-demo.mp4">Watch the dashboard tour (MP4)</a>
+  </video>
 </p>
 
 
@@ -55,6 +57,7 @@ gh-tracker archives it before that happens.
   - Issues & PRs with color-coded status and labels
   - Language breakdown with colored segments
   - Release downloads per asset
+- **Self-Hosted Runner Monitoring** — live SSE stream of GitHub Actions runner state: listener/worker PIDs, log age, current step, stuck detection, worker log tail on demand
 - **Referrers Chart** — horizontal bar chart of traffic sources
 - **Popular Pages** — table with ranked paths
 - **CSV/JSON Export** — download all traffic and people data
@@ -82,7 +85,7 @@ gh-tracker archives it before that happens.
                     └──────────┬──────────────┘
                                │
                     ┌──────────▼──────────────┐
-                    │   FastAPI (23 endpoints) │
+                    │   FastAPI (46 endpoints) │
                     │  async · Pydantic · CORS │
                     └──────────┬──────────────┘
                                │
@@ -154,7 +157,7 @@ sudo systemctl enable --now gh-tracker-api.service
 ## API Endpoints
 
 <details>
-<summary>23 endpoints (click to expand)</summary>
+<summary>46 endpoints (click to expand)</summary>
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -187,7 +190,7 @@ sudo systemctl enable --now gh-tracker-api.service
 ## Development
 
 ```bash
-# Backend tests (146 passing)
+# Backend tests (252 passing)
 cd backend && pytest tests/ --ignore=tests/test_live_collect.py -v
 
 # Backend lint
@@ -208,7 +211,7 @@ backend/
     collector.py       # GitHub API data collection (REST + GraphQL)
     config.py          # Token/repo discovery via gh CLI
     database.py        # SQLite with 15 tables, async via aiosqlite
-    main.py            # FastAPI with 23 endpoints
+    main.py            # FastAPI with 46 endpoints
     server_config.py   # Port resolution (GH_TRACKER_PORT, default 50047)
   tests/               # 146 unit tests (pytest + pytest-httpx)
   collect_live.py      # CLI entry point for data collection
@@ -216,7 +219,7 @@ backend/
 
 frontend/
   src/
-    components/     # 12 React components
+    components/     # 24 React components
       KpiCard.tsx CommitHeatmap.tsx CodeFrequencyChart.tsx
       TrafficChart.tsx ReferrersChart.tsx PopularPaths.tsx
       VisitorsTable.tsx VisitorDrilldown.tsx PeoplePanel.tsx
