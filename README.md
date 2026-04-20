@@ -1,6 +1,6 @@
 <div align="center">
 
-[![CI](https://github.com/rayketcham/gh-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/rayketcham/gh-tracker/actions/workflows/ci.yml)
+[![CI](https://github.com/rayketcham-lab/gh-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/rayketcham-lab/gh-tracker/actions/workflows/ci.yml)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)
 ![React 18](https://img.shields.io/badge/react-18-61DAFB?logo=react&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
@@ -102,7 +102,7 @@ gh-tracker archives it before that happens.
 
 ```bash
 # Clone
-git clone https://github.com/rayketcham/gh-tracker.git
+git clone https://github.com/rayketcham-lab/gh-tracker.git
 cd gh-tracker
 
 # Backend

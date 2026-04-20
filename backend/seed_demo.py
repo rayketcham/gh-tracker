@@ -27,7 +27,7 @@ TOTAL_DAYS = (END_DATE - START_DATE).days + 1  # 91 days (indices 0..90)
 HN_SPIKE_DAY = 45
 
 REPOS = [
-    "rayketcham/gh-tracker",
+    "rayketcham-lab/gh-tracker",
     "rayketcham/awesome-project",
 ]
 
@@ -42,8 +42,8 @@ REFERRERS = [
 
 # Popular paths per repo
 PATHS = {
-    "rayketcham/gh-tracker": [
-        ("/", "rayketcham/gh-tracker: GitHub traffic tracker"),
+    "rayketcham-lab/gh-tracker": [
+        ("/", "rayketcham-lab/gh-tracker: GitHub traffic tracker"),
         ("/README.md", "README - gh-tracker"),
         ("/blob/main/src/collector.py", "collector.py - source"),
         ("/blob/main/src/main.py", "main.py - source"),
