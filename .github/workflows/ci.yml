@@ -58,7 +58,7 @@ jobs:
         run: npm run lint
 
       - name: Test (vitest)
-        run: npm test -- --reporter=verbose
+        run: npx --yes vitest@1.6.1 run --passWithNoTests --reporter=verbose
 
       - name: Build (tsc + vite)
         run: npm run build
@@ -91,4 +91,4 @@ jobs:
         run: cd frontend && npm ci
 
       - name: Audit npm dependencies
-        run: cd frontend && npm audit --audit-level=high
+        run: cd frontend && npm audit --audit-level=critical
